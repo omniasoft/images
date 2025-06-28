@@ -1,0 +1,46 @@
+name: Build All Images
+
+on:
+  push:
+    branches:
+      - main
+
+# We need to match our permissions of our docker-build.yaml
+permissions:
+  contents: read
+  packages: write
+  attestations: write
+  id-token: write
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      php_files: ${{ steps.filter.outputs.php_files }}
+      php: ${{ steps.filter.outputs.php }}
+    #   node: ${{ steps.filter.outputs.node }}
+    #   nginx: ${{ steps.filter.outputs.nginx }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect changed Dockerfiles
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          list-files: json
+          filters: |
+            php:
+              - 'php/*.Dockerfile'
+            # node:
+            #   - 'images/node.Dockerfile'
+            # nginx:
+            #   - 'images/nginx.Dockerfile'
+
+  build-php:
+    needs: changes
+    if: needs.changes.outputs.php == 'true' || true
+    uses: ./.github/workflows/call-docker-build.yaml
+    with:
+      image: php
+      dockerfiles: '["php/php5.Dockerfile", "php/php7.Dockerfile", "php/php8.Dockerfile"]' # ${{ needs.changes.outputs.php_files }}
+      variants: '["-fpm"]'

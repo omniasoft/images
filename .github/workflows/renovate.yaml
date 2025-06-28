@@ -1,0 +1,55 @@
+name: Renovate
+on:
+  # Allows manual/automated ad-hoc trigger
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: Override default log level
+        required: false
+        default: debug
+        type: string
+      overrideSchedule:
+        description: Override all schedules
+        required: false
+        default: "false"
+        type: string
+
+  # Whenever we change this file in our main branch
+  push:
+    branches:
+      - main
+    paths:
+      - .github/renovate.json5
+      - .github/workflows/renovate.yaml
+
+  # Run twice in the early morning for initial and follow up steps (create pull request and merge)
+  schedule:
+    - cron: 30 0,4 * * * # Note that this is UTC time (-1 and -2 from us depending summer time)
+
+concurrency: renovate
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: renovatebot/github-action@v42.0.2
+        env:
+          LOG_LEVEL: ${{ inputs.logLevel || 'debug' }}
+          RENOVATE_REPOSITORIES: ${{ github.repository }} # Just target ourself
+          RENOVATE_ONBOARDING: "false" # We do not care about onboarding as all is setup
+          RENOVATE_PLATFORM_COMMIT: "false" # Sign commits using GitHub web platform
+          RENOVATE_GIT_AUTHOR: "Renovate Bot <bot@renovateapp.com>"
+          RENOVATE_BINARY_SOURCE: install # We want to automatically use third party dependencies like Flux!
+          RENOVATE_FORCE: ${{ github.event.inputs.overrideSchedule == 'true' && '{''schedule'':null}' || '' }}
+          RENOVATE_X_DOCKER_HUB_TAGS_DISABLE: "true" # I get authentication errors over hub.docker.com?!
+          RENOVATE_HOST_RULES: >-
+            [
+              {
+                "hostType": "docker",
+                "matchHost": "docker.io",
+                "username": "${{ secrets.DOCKERHUB_USERNAME }}",
+                "password": "${{ secrets.DOCKERHUB_TOKEN }}"
+              }
+            ]
+        with:
+          token: ${{ secrets.RENOVATE_TOKEN }}
