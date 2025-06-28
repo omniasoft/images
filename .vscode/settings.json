@@ -1,0 +1,15 @@
+{
+  "editor.formatOnSave": true,
+  "files.insertFinalNewline": true,
+  "editor.rulers": [120],
+  "editor.codeActionsOnSave": ["source.fixAll.format", "source.fixAll.eslint"],
+  "files.associations": {
+    "**/ansible/**/*.yml": "ansible",
+    "**/ansible/**/templates/**/*": "jinja-properties",
+    "renovate.json5": "jsonc" // NOTE/TODO: json5 is not by default support by VSCode, so let's just do jsonc which is close enough.
+  },
+  "search.exclude": {},
+  "[dockerfile]": {
+    "editor.defaultFormatter": "docker.docker"
+  }
+}
