@@ -27,9 +27,17 @@
       // We automatically merge our images
       "groupName": "dockerfile",
       "matchManagers": ["dockerfile"],
+      "schedule": ["* 1 * * 6"],
       "automerge": true,
       "automergeType": "branch",
       "ignoreTests": true // We just want to merge, no questions!
+    }
+  ],
+  "customManagers": [
+    {
+      "managerFilePatterns": ["Dockerfile", "*.Dockerfile"],
+      "matchStrings": ["https://github.com/(?<depName>[^/]*/[^/]*)/releases/download/v?(?<currentValue>[0-9.]+)/"],
+      "datasourceTemplate": "github-releases"
     }
   ]
 }
