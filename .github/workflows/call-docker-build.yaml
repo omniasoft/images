@@ -23,6 +23,10 @@ on:
         description: Comma separated list of platforms to build for
         default: linux/amd64,linux/arm64
         type: string
+      build-args:
+        description: Additional build args in VARIABLE=value
+        default: ""
+        type: string
 
 jobs:
   build:
@@ -89,6 +93,7 @@ jobs:
           platforms: ${{ inputs.platforms }}
           build-args: |
             VARIANT=${{ matrix.variant }}
+            ${{ inputs.build-args }}
 
       - name: Generate provenance attestation
         uses: actions/attest-build-provenance@v1

@@ -12,14 +12,15 @@ permissions:
   attestations: write
   id-token: write
 
+# TODO: How do we trigger rebuilds of ALL dockerfiles on force push or something else.
+# - Check if build-all-images has changed, if so, do a glob  on all files and run against everything!
+
 jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
       php_files: ${{ steps.filter.outputs.php_files }}
       php: ${{ steps.filter.outputs.php }}
-    #   node: ${{ steps.filter.outputs.node }}
-    #   nginx: ${{ steps.filter.outputs.nginx }}
     steps:
       - uses: actions/checkout@v4
 
@@ -31,10 +32,6 @@ jobs:
           filters: |
             php:
               - 'php/*.Dockerfile'
-            # node:
-            #   - 'images/node.Dockerfile'
-            # nginx:
-            #   - 'images/nginx.Dockerfile'
 
   build-php:
     needs: changes
@@ -44,3 +41,6 @@ jobs:
       image: php
       dockerfiles: '["php/php5.Dockerfile", "php/php7.Dockerfile", "php/php8.Dockerfile"]' # ${{ needs.changes.outputs.php_files }}
       variants: '["-fpm"]'
+      build-args: |
+        DEBIAN_PACKAGES=msmtp-mta less
+        PHP_EXTENSIONS=redis gd bcmath exif intl mysqli pgsql zip imagick opcache
