@@ -1,4 +1,4 @@
-name: Build All Images
+name: Build all images
 
 on:
   push:
@@ -12,8 +12,7 @@ permissions:
   attestations: write
   id-token: write
 
-# TODO: How do we trigger rebuilds of ALL dockerfiles on force push or something else.
-# - Check if build-all-images has changed, if so, do a glob  on all files and run against everything!
+# TODO: How do we properly rebuild images when build-all-images.yaml itself is changed?
 
 jobs:
   changes:
@@ -21,26 +20,48 @@ jobs:
     outputs:
       php_files: ${{ steps.filter.outputs.php_files }}
       php: ${{ steps.filter.outputs.php }}
+      unit_files: ${{ steps.filter.outputs.unit_files }}
+      unit: ${{ steps.filter.outputs.unit }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 2
+
+      - name: Get previous commit SHA to correctly detect changed files
+        run: echo "PREVIOUS_COMMIT_SHA=$(git rev-parse HEAD~1)" >> $GITHUB_ENV
 
       - name: Detect changed Dockerfiles
         id: filter
         uses: dorny/paths-filter@v3
         with:
+          base: ${{ env.PREVIOUS_COMMIT_SHA }}
           list-files: json
           filters: |
             php:
               - 'php/*.Dockerfile'
+            unit:
+              - 'unit/*.Dockerfile'
 
   build-php:
     needs: changes
-    if: needs.changes.outputs.php == 'true' || true
+    if: needs.changes.outputs.php == 'true'
     uses: ./.github/workflows/call-docker-build.yaml
     with:
       image: php
-      dockerfiles: '["php/php5.Dockerfile", "php/php7.Dockerfile", "php/php8.Dockerfile"]' # ${{ needs.changes.outputs.php_files }}
+      dockerfiles: ${{ needs.changes.outputs.php_files }}
       variants: '["-fpm"]'
+      build-args: |
+        DEBIAN_PACKAGES=msmtp-mta less
+        PHP_EXTENSIONS=redis gd bcmath exif intl mysqli pgsql zip imagick opcache
+
+  build-unit:
+    needs: changes
+    if: needs.changes.outputs.unit == 'true'
+    uses: ./.github/workflows/call-docker-build.yaml
+    with:
+      image: unit
+      dockerfiles: ${{ needs.changes.outputs.unit_files }}
       build-args: |
         DEBIAN_PACKAGES=msmtp-mta less
         PHP_EXTENSIONS=redis gd bcmath exif intl mysqli pgsql zip imagick opcache
