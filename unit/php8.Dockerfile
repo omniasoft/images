@@ -15,3 +15,5 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         $DEBIAN_PACKAGES \
     ; fi \
     && rm -rf /var/lib/apt/lists/*
+
+# TODO: Allow for rootless variant!
