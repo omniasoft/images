@@ -64,7 +64,7 @@ jobs:
               {
                 "hostType": "docker",
                 "matchHost": "docker.io",
-                "username": "${{ secrets.DOCKERHUB_USERNAME }}",
+                "username": "kevinvalk",
                 "password": "${{ secrets.DOCKERHUB_TOKEN }}"
               },
               {
