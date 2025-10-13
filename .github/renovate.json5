@@ -36,15 +36,12 @@
   ],
   "customManagers": [
     {
-      // TODO: Currently this "only" updates the version of the GitHub release, however if the version is ALSO in the
-      // filename, this will NOT be updated.
       "customType": "regex",
       "managerFilePatterns": ["/(?:.*\\.)?Dockerfile/"],
-      // TODO: Figure out if this also works when the second line does NOT match...
       "matchStrings": [
         // The first line update the release itself
         "https://github.com/(?<depName>[^/]*/[^/]*)/releases/download/v?(?<currentValue>[0-9.]+)/",
-        // The second line updates the version number WITHIN the filename
+        // The second line updates the version number WITHIN the filename (IFF it is present, if not, just update the main release).
         "https://github.com/(?<depName>[^/]*/[^/]*)/releases/download/v?[0-9.]+/[^/]*?(?<currentValue>(?:\\.?[0-9]+)+)"
       ],
       "datasourceTemplate": "github-releases"
