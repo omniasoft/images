@@ -1,5 +1,5 @@
 ARG VARIANT=
-FROM php:5.6.40${VARIANT}
+FROM php:8.4.13${VARIANT}
 
 ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
 ADD --chmod=0755 https://github.com/wp-cli/wp-cli/releases/download/v2.12.0/wp-cli-2.12.0.phar /usr/local/bin/wp
