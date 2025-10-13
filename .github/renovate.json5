@@ -2,35 +2,30 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
-    "default:pinDigestsDisabled", // Disable docker digest pinning
-    "docker:disableMajor" // We do not want to do major docker versions as it is our responsibility to add images when required.
+    "docker:enableMajor", // Enable docker major version upgrades
+    ":preserveSemverRanges", // Update SemVer ranges
+    ":skipStatusChecks", // Just merge without waiting for tests (if we don't have tests or don't care)
+    ":automergeMinor" // We want to merge all minor and patches
   ],
-  "rebaseWhen": "behind-base-branch",
-  "timezone": "Europe/Amsterdam",
-  "rangeStrategy": "replace",
-  "recreateWhen": "always",
-  "dependencyDashboard": true, // "Special" dashboard issue in which you can see and control stuff
-  "prHourlyLimit": 60,
-  "enabledManagers": ["dockerfile", "github-actions"],
-  // We want to update all our container images, operators, etc in a single PR.
-  // TODO/NOTE: Automerge PR usage GitHub automerge native which only works for paid or public!
+  "automergeSchedule": ["* 0-6 * * 6"], // IMPORTANT: This needs to match GitHub Actions schedule which run in UTC (renovate without timezone also runs UTC)
+  // We simply automerge everything via commits in one fell swoop!
+  "enabledManagers": ["custom.regex", "dockerfile", "github-actions"],
   "packageRules": [
     {
+      // We should keep our docker images up to date automatically
       "groupName": "github-actions",
       "matchManagers": ["github-actions"],
-      "schedule": ["* 1 * * 6"],
-      "automerge": true,
+      "matchUpdateTypes": ["major", "minor", "patch"],
       "automergeType": "branch",
-      "ignoreTests": true // We just want to merge, no questions!
+      "automerge": true
     },
     {
-      // We automatically merge our images
-      "groupName": "dockerfile",
-      "matchManagers": ["dockerfile"],
-      "schedule": ["* 1 * * 6"],
-      "automerge": true,
+      // We should keep our docker images up to date automatically
+      "groupName": "docker",
+      "matchManagers": ["dockerfile", "custom.regex"],
+      "matchUpdateTypes": ["minor", "patch"],
       "automergeType": "branch",
-      "ignoreTests": true // We just want to merge, no questions!
+      "automerge": true
     }
   ],
   "customManagers": [
