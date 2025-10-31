@@ -12,18 +12,25 @@ on:
         description: Ignores schedules and merge/commit everything now
         default: false
         type: boolean
+      releaseDependency:
+        description: Release a single dependency by renovate dependency name (or regex /.*/)
+        type: string
 
   workflow_call:
     inputs:
       logLevel:
         description: Log level
-        default: warn
+        default: info
         type: string
 
       overrideSchedule:
         description: Ignores schedules and merge/commit everything now
         default: false
         type: boolean
+
+      releaseDependency:
+        description: Release a single dependency by renovate dependency name (or regex /.*/)
+        type: string
 
   # Whenever we change this file in our main branch
   push:
@@ -44,15 +51,41 @@ jobs:
   renovate:
     runs-on: ubuntu-latest
     steps:
+      - name: Force automatic release of dependency ${{ inputs.releaseDependency }}
+        if: ${{ inputs.releaseDependency }}
+        run: |
+          cat > /tmp/release-dependency.renovate.json <<'JSON'
+          {
+            "packageRules": [
+              {
+                "description": "Disable updates for all packages",
+                "enabled": false,
+                "matchPackageNames": ["*"],
+              },
+              {
+                "description": "Force automatic release of chosen dependency",
+                "enabled": true,
+                "schedule": null, // Maybe required to ensure we can create the (temporary) branch
+                "automerge": true,
+                "automergeType": "branch",
+                "automergeSchedule": null, // Ensure we can perform the release
+                "ignoreTests": true, // Just release without waiting for tests
+                "matchDepNames": [${{ toJSON(inputs.releaseDependency) }}],
+              }
+            ]
+          }
+          JSON
+          echo "RENOVATE_ADDITIONAL_CONFIG_FILE=/tmp/release-dependency.renovate.json" >> $GITHUB_ENV
+
       # IMPORTANT: Renovate works "weirdly" as it pulls repositories to work on itself, so it will clone RENOVATE_REPOSITORIES
       # itself using the token. This means it is also hard to test locally.
       - uses: renovatebot/github-action@v43.0.18
         env:
-          LOG_LEVEL: ${{ inputs.logLevel || 'warn' }} # The or sets the log level for cron runs
+          LOG_LEVEL: ${{ inputs.logLevel || 'info' }} # The or sets the log level for cron runs
           RENOVATE_REPOSITORIES: ${{ github.repository }} # Just target ourself
           RENOVATE_GIT_AUTHOR: "Renovate Bot <bot@renovateapp.com>"
           RENOVATE_BINARY_SOURCE: install # We want to automatically use third party dependencies like Flux!
-          RENOVATE_FORCE: ${{ github.event.inputs.overrideSchedule == 'true' && '{''schedule'':null,''automergeSchedule'':null}' || '' }}
+          RENOVATE_FORCE: ${{ inputs.overrideSchedule == 'true' && '{''schedule'':null,''automergeSchedule'':null}' || '' }}
           RENOVATE_X_DOCKER_HUB_TAGS_DISABLE: "true" # Ensure to use normal Docker API for docker registry to avoid authentication issues.
           # Let's move some common settings (that we can) here so we don't have to add these to each renovate.json5
           RENOVATE_PLATFORM_AUTOMERGE: false
