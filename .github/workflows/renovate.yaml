@@ -79,7 +79,7 @@ jobs:
 
       # IMPORTANT: Renovate works "weirdly" as it pulls repositories to work on itself, so it will clone RENOVATE_REPOSITORIES
       # itself using the token. This means it is also hard to test locally.
-      - uses: renovatebot/github-action@v44.0.0
+      - uses: renovatebot/github-action@v44.0.2
         env:
           LOG_LEVEL: ${{ inputs.logLevel || 'info' }} # The or sets the log level for cron runs
           RENOVATE_REPOSITORIES: ${{ github.repository }} # Just target ourself
