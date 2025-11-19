@@ -56,7 +56,7 @@ jobs:
       dockerfiles: ${{ needs.changes.outputs.php_files }}
       variants: '["-fpm"]'
       build-args: |
-        DEBIAN_PACKAGES=msmtp-mta less
+        DEBIAN_PACKAGES=msmtp-mta less ghostscript
         PHP_EXTENSIONS=redis gd bcmath exif intl mysqli pgsql zip imagick opcache
 
   build-unit:
@@ -67,7 +67,7 @@ jobs:
       image: unit
       dockerfiles: ${{ needs.changes.outputs.unit_files }}
       build-args: |
-        DEBIAN_PACKAGES=msmtp-mta less
+        DEBIAN_PACKAGES=msmtp-mta less ghostscript
         PHP_EXTENSIONS=redis gd bcmath exif intl mysqli pgsql zip imagick opcache
 
   build-frankenphp:
@@ -77,6 +77,8 @@ jobs:
     with:
       image: frankenphp
       dockerfiles: ${{ needs.changes.outputs.frankenphp_files }}
+      # NOTES:
+      # - ghostscript is often used by WordPress which we are using a lot
       build-args: |
-        DEBIAN_PACKAGES=msmtp-mta less
+        DEBIAN_PACKAGES=msmtp-mta less ghostscript
         PHP_EXTENSIONS=redis gd bcmath exif intl mysqli pgsql zip imagick opcache

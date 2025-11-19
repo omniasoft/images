@@ -1,6 +1,5 @@
 FROM dunglas/frankenphp:1.9.1-php8.4.14-trixie
 
-
 ARG PHP_EXTENSIONS
 RUN if [ ! -z "PHP_EXTENSIONS" ]; then install-php-extensions $PHP_EXTENSIONS; fi
 
@@ -14,10 +13,10 @@ $DEBIAN_PACKAGES \
 ; fi \
 && rm -rf /var/lib/apt/lists/*
 
+# We are using WordPress a lot so make sure to add wp-cli
 ADD --chmod=0755 https://github.com/wp-cli/wp-cli/releases/download/v2.12.0/wp-cli-2.12.0.phar /usr/local/bin/wp
 
 # Unprivileged and without capabilities using default www-data user in debian
 RUN setcap -r /usr/local/bin/frankenphp; \
 	chown -R www-data:www-data /config/caddy /data/caddy
 USER www-data
-
