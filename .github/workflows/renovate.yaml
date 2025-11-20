@@ -23,6 +23,10 @@ on:
         default: info
         type: string
 
+      repository:
+        description: The repository to renovate
+        type: string
+
       overrideSchedule:
         description: Ignores schedules and merge/commit everything now
         default: false
@@ -82,10 +86,10 @@ jobs:
       - uses: renovatebot/github-action@v44.0.2
         env:
           LOG_LEVEL: ${{ inputs.logLevel || 'info' }} # The or sets the log level for cron runs
-          RENOVATE_REPOSITORIES: ${{ github.repository }} # Just target ourself
+          RENOVATE_REPOSITORIES: ${{ inputs.repository || github.repository }}
           RENOVATE_GIT_AUTHOR: "Renovate Bot <bot@renovateapp.com>"
           RENOVATE_BINARY_SOURCE: install # We want to automatically use third party dependencies like Flux!
-          RENOVATE_FORCE: ${{ inputs.overrideSchedule == 'true' && '{''schedule'':null,''automergeSchedule'':null}' || '' }}
+          RENOVATE_FORCE: ${{ inputs.overrideSchedule == true && '{''schedule'':null,''automergeSchedule'':null}' || '' }}
           RENOVATE_X_DOCKER_HUB_TAGS_DISABLE: "true" # Ensure to use normal Docker API for docker registry to avoid authentication issues.
           # Let's move some common settings (that we can) here so we don't have to add these to each renovate.json5
           RENOVATE_PLATFORM_AUTOMERGE: false
