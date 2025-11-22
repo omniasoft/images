@@ -25,7 +25,7 @@ jobs:
       frankenphp_files: ${{ steps.filter.outputs.frankenphp_files }}
       frankenphp: ${{ steps.filter.outputs.frankenphp }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.ref }}
           fetch-depth: 2
