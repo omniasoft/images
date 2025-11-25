@@ -39,11 +39,6 @@ on:
       releaseDependencies:
         description: A JSON encoded list (e.g. ["a", "b"]) of dependencies to release via renovate dependency name (or regex /.*/)
         type: string
-    secrets:
-      docker-token:
-        required: false
-      renovate-token:
-        required: false
 
   # Whenever we change this file in our main branch
   push:
@@ -69,6 +64,7 @@ jobs:
         run: |
           cat > /tmp/release-dependency.renovate.json <<'JSON'
           {
+            "pruneStaleBranches": false, // As we are running in a limited mode, don't touch other stuff.
             "packageRules": [
               {
                 "description": "Disable updates for all packages",
@@ -111,14 +107,14 @@ jobs:
                 "hostType": "docker",
                 "matchHost": "docker.io",
                 "username": "kevinvalk",
-                "password": "${{ secrets.DOCKERHUB_TOKEN || secrets.docker-token }}"
+                "password": "${{ secrets.DOCKERHUB_TOKEN }}"
               },
               {
                 "hostType": "docker",
                 "matchHost": "ghcr.io",
                 "username": "kevinvalk",
-                "password": "${{ secrets.RENOVATE_TOKEN || secrets.renovate-token }}"
+                "password": "${{ secrets.RENOVATE_TOKEN }}"
               }
             ]
         with:
-          token: ${{ secrets.RENOVATE_TOKEN || secrets.renovate-token }}
+          token: ${{ secrets.RENOVATE_TOKEN }}
