@@ -36,6 +36,15 @@ on:
         description: Release a single dependency by renovate dependency name (or regex /.*/)
         type: string
 
+      releaseDependencies:
+        description: A JSON encoded list (e.g. ["a", "b"]) of dependencies to release via renovate dependency name (or regex /.*/)
+        type: string
+    secrets:
+      docker-token:
+        required: false
+      renovate-token:
+        required: false
+
   # Whenever we change this file in our main branch
   push:
     branches:
@@ -55,8 +64,8 @@ jobs:
   renovate:
     runs-on: ubuntu-latest
     steps:
-      - name: Force automatic release of dependency ${{ inputs.releaseDependency }}
-        if: ${{ inputs.releaseDependency }}
+      - name: Force automatic release of dependency ${{ inputs.releaseDependencies || inputs.releaseDependency }}
+        if: ${{ inputs.releaseDependencies || inputs.releaseDependency }}
         run: |
           cat > /tmp/release-dependency.renovate.json <<'JSON'
           {
@@ -74,7 +83,7 @@ jobs:
                 "automergeType": "branch",
                 "automergeSchedule": null, // Ensure we can perform the release
                 "ignoreTests": true, // Just release without waiting for tests
-                "matchDepNames": [${{ toJSON(inputs.releaseDependency) }}],
+                "matchDepNames": ${{ inputs.releaseDependencies || format('[{0}]', toJSON(inputs.releaseDependency)) }},
               }
             ]
           }
@@ -102,14 +111,14 @@ jobs:
                 "hostType": "docker",
                 "matchHost": "docker.io",
                 "username": "kevinvalk",
-                "password": "${{ secrets.DOCKERHUB_TOKEN }}"
+                "password": "${{ secrets.DOCKERHUB_TOKEN || secrets.docker-token }}"
               },
               {
                 "hostType": "docker",
                 "matchHost": "ghcr.io",
                 "username": "kevinvalk",
-                "password": "${{ secrets.RENOVATE_TOKEN }}"
+                "password": "${{ secrets.RENOVATE_TOKEN || secrets.renovate-token }}"
               }
             ]
         with:
-          token: ${{ secrets.RENOVATE_TOKEN }}
+          token: ${{ secrets.RENOVATE_TOKEN || secrets.renovate-token }}
