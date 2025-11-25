@@ -13,7 +13,6 @@ permissions:
   id-token: write
 
 # TODO: How do we properly rebuild images when build-all-images.yaml itself is changed?
-
 jobs:
   changes:
     runs-on: ubuntu-latest
@@ -59,9 +58,11 @@ jobs:
       image: php
       dockerfiles: ${{ needs.changes.outputs.php_files }}
       variants: '["-fpm"]'
-      build-args: |
+      # NOTES:
+      # - ghostscript is often used by WordPress which we are using a lot
+      build-args: &php-build-args |
         DEBIAN_PACKAGES=msmtp-mta less ghostscript
-        PHP_EXTENSIONS=redis gd bcmath exif intl mysqli pgsql zip imagick opcache
+        PHP_EXTENSIONS=redis gd bcmath exif intl mysqli pgsql pdo_mysql pdo_pgsql zip imagick opcache
 
   build-unit:
     needs: changes
@@ -70,9 +71,7 @@ jobs:
     with:
       image: unit
       dockerfiles: ${{ needs.changes.outputs.unit_files }}
-      build-args: |
-        DEBIAN_PACKAGES=msmtp-mta less ghostscript
-        PHP_EXTENSIONS=redis gd bcmath exif intl mysqli pgsql zip imagick opcache
+      build-args: *php-build-args
 
   build-frankenphp:
     needs: changes
@@ -81,11 +80,7 @@ jobs:
     with:
       image: frankenphp
       dockerfiles: ${{ needs.changes.outputs.frankenphp_files }}
-      # NOTES:
-      # - ghostscript is often used by WordPress which we are using a lot
-      build-args: |
-        DEBIAN_PACKAGES=msmtp-mta less ghostscript
-        PHP_EXTENSIONS=redis gd bcmath exif intl mysqli pgsql zip imagick opcache
+      build-args: *php-build-args
 
   build-nginx:
     needs: changes
