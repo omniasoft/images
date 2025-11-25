@@ -24,6 +24,8 @@ jobs:
       unit: ${{ steps.filter.outputs.unit }}
       frankenphp_files: ${{ steps.filter.outputs.frankenphp_files }}
       frankenphp: ${{ steps.filter.outputs.frankenphp }}
+      nginx_files: ${{ steps.filter.outputs.nginx_files }}
+      nginx: ${{ steps.filter.outputs.nginx }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -46,6 +48,8 @@ jobs:
               - 'unit/*.Dockerfile'
             frankenphp:
               - 'frankenphp/*.Dockerfile'
+            nginx:
+              - 'nginx/Dockerfile'
 
   build-php:
     needs: changes
@@ -82,3 +86,11 @@ jobs:
       build-args: |
         DEBIAN_PACKAGES=msmtp-mta less ghostscript
         PHP_EXTENSIONS=redis gd bcmath exif intl mysqli pgsql zip imagick opcache
+
+  build-nginx:
+    needs: changes
+    if: needs.changes.outputs.nginx == 'true'
+    uses: ./.github/workflows/call-docker-build.yaml
+    with:
+      image: nginx
+      dockerfiles: ${{ needs.changes.outputs.nginx_files }}
