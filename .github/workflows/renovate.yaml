@@ -106,15 +106,15 @@ jobs:
               {
                 "hostType": "docker",
                 "matchHost": "docker.io",
-                "username": "kevinvalk",
-                "password": "${{ secrets.DOCKERHUB_TOKEN }}"
+                "username": "${{ vars.OMNIASOFT_RENOVATE_DOCKER_USERNAME }}",
+                "password": "${{ secrets.OMNIASOFT_RENOVATE_DOCKER_TOKEN }}"
               },
               {
                 "hostType": "docker",
                 "matchHost": "ghcr.io",
-                "username": "kevinvalk",
-                "password": "${{ secrets.RENOVATE_TOKEN }}"
+                "username": "${{ vars.OMNIASOFT_RENOVATE_GITHUB_USERNAME }}",
+                "password": "${{ secrets.OMNIASOFT_RENOVATE_GITHUB_PAT }}"
               }
             ]
         with:
-          token: ${{ secrets.RENOVATE_TOKEN }}
+          token: ${{ secrets.OMNIASOFT_RENOVATE_GITHUB_PAT }}
