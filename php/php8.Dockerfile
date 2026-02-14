@@ -1,5 +1,5 @@
 ARG VARIANT=
-FROM php:8.5.2${VARIANT}
+FROM php:8.5.3${VARIANT}
 
 ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
 
