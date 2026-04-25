@@ -1,4 +1,4 @@
-FROM nginxinc/nginx-unprivileged:1.29.8-trixie
+FROM nginxinc/nginx-unprivileged:1.30.0-trixie
 
 # We "normalize" the nginx unprivileged image into what we normally have (user www-data) and /var/www/html
 USER root
