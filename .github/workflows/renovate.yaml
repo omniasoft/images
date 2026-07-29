@@ -65,6 +65,7 @@ jobs:
           cat > /tmp/release-dependency.renovate.json <<'JSON'
           {
             "pruneStaleBranches": false, // As we are running in a limited mode, don't touch other stuff.
+            "minimumReleaseAge": null, // Make sure to disable any minimum release age as we want to release NOW!
             "packageRules": [
               {
                 "description": "Disable updates for all packages",
