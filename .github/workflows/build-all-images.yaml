@@ -23,8 +23,8 @@ jobs:
       unit: ${{ steps.filter.outputs.unit }}
       frankenphp_files: ${{ steps.filter.outputs.frankenphp_files }}
       frankenphp: ${{ steps.filter.outputs.frankenphp }}
-      nginx_files: ${{ steps.filter.outputs.nginx_files }}
-      nginx: ${{ steps.filter.outputs.nginx }}
+      general: ${{ steps.filter.outputs.general }}
+      general_matrix: ${{ steps.general-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -47,8 +47,20 @@ jobs:
               - 'unit/*.Dockerfile'
             frankenphp:
               - 'frankenphp/*.Dockerfile'
-            nginx:
-              - 'nginx/Dockerfile'
+            general:
+              - '*.Dockerfile'
+
+      - name: Strip out .Dockerfile suffix from all generic images so we can easily run a matrix job
+        id: general-matrix
+        env: # Protect against injection attacks
+          FILES: ${{ steps.filter.outputs.general_files }}
+        run: |
+          matrix=$(jq -c '[.[] | {
+            file:        .,
+            image:       (. | sub("\\.Dockerfile$"; "")),
+            dockerfiles: ([.] | tostring)
+          }]' <<<"$FILES")
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
 
   build-php:
     needs: changes
@@ -82,10 +94,19 @@ jobs:
       dockerfiles: ${{ needs.changes.outputs.frankenphp_files }}
       build-args: *php-build-args
 
-  build-nginx:
+  # Special job to run build for all *.Dockerfile in this repository
+  build:
     needs: changes
-    if: needs.changes.outputs.nginx == 'true'
+    if: needs.changes.outputs.general == 'true'
+    concurrency:
+      group: build-general-${{ matrix.target.image }}
+      cancel-in-progress: true
+    name: ${{ matrix.target.image }} - ${{ matrix.target.file }}
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(needs.changes.outputs.general_matrix) }}
     uses: ./.github/workflows/call-docker-build.yaml
     with:
-      image: nginx
-      dockerfiles: ${{ needs.changes.outputs.nginx_files }}
+      image: ${{ matrix.target.image }}
+      dockerfiles: ${{ matrix.target.dockerfiles }}
