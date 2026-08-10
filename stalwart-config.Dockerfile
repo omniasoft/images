@@ -23,7 +23,8 @@ until curl -fsS --max-time 3 -o /dev/null "${STALWART_URL}/healthz/ready"; do
   sleep 2
 done
 
-yq -o=json -I=0 '.[]' /config/*.yaml > /tmp/plan.ndjson
+# NOTE: We are using cat here to ensure the proper order of the files is used for inter file anchors.
+cat /config/*.yaml | yq --yaml-fix-merge-anchor-to-spec=true -o=json -I=0 '.[]' > /tmp/plan.ndjson
 stalwart-cli apply --file /tmp/plan.ndjson
 EOT
 
