@@ -12,95 +12,221 @@ on:
         required: true
         type: string
       variants:
-        description: JSON encode array of variants
+        description: JSON encoded array of variants
         default: '[""]'
         type: string
       registry:
-        description: Which docker registry to use
+        description: Which container registry to use
         default: ghcr.io
         type: string
-      platforms:
-        description: Comma separated list of platforms to build for
-        default: linux/amd64,linux/arm64
+      architectures:
+        description: JSON encoded array of architectures to build
+        default: '["amd64","arm64"]'
         type: string
       build-args:
-        description: Additional build args in VARIABLE=value
+        description: Additional build args in VARIABLE=value format
+        default: ""
+        type: string
+      labels:
+        description: |
+          Additional image labels in key=value format. These override the defaults, which
+          metadata-action derives from this repository rather than from the packaged
+          software, so source builds want to set at least title/description/licenses.
+        default: ""
+        type: string
+      source-repository:
+        description: Git repository URL to use as the build context
+        default: ""
+        type: string
+      source-ref:
+        description: Semantic Git tag to build from source-repository
         default: ""
         type: string
 
+concurrency:
+  group: build-${{ inputs.registry }}-${{ github.repository }}-${{ inputs.image }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+  attestations: write
+  artifact-metadata: write
+  id-token: write
+
 jobs:
   build:
+    name: Build ${{ matrix.dockerfile }}${{ matrix.variant }} (${{ matrix.architecture }})
     strategy:
       fail-fast: false
       matrix:
-        dockerfile: ${{ fromJson(inputs.dockerfiles) }}
-        variant: ${{ fromJson(inputs.variants) }}
+        dockerfile: ${{ fromJSON(inputs.dockerfiles) }}
+        variant: ${{ fromJSON(inputs.variants) }}
+        architecture: ${{ fromJSON(inputs.architectures) }}
 
-    concurrency:
-      group: build-${{ inputs.image }}-${{ matrix.dockerfile }}-${{ matrix.variant }}
-      cancel-in-progress: true
+    runs-on: ${{ matrix.architecture == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
 
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      packages: write
-      attestations: write
-      artifact-metadata: write
-      id-token: write
+    env:
+      DOCKER_BUILD_RECORD_UPLOAD: false
 
     steps:
-      - uses: actions/checkout@v7
+      - &checkout
+        name: Check out image definitions
+        if: inputs.source-repository == ''
+        uses: actions/checkout@v7
 
-      - uses: docker/login-action@v4
-        with:
-          registry: ${{ inputs.registry }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - &source
+        name: Check out source repository
+        if: inputs.source-repository != ''
+        env:
+          SOURCE_REF: ${{ inputs.source-ref }}
+          SOURCE_REPOSITORY: ${{ inputs.source-repository }}
+        run: git clone --depth=1 --branch "$SOURCE_REF" "$SOURCE_REPOSITORY" source
 
       - name: Extract version information and date epoch
         id: info
-        run: |
-          echo "prefix=$(sed -nE 's/^FROM +[^:]*:([a-z]*)+([0-9.]+)\$?.*$/\1/p' '${{ matrix.dockerfile }}' | head -1)" >> $GITHUB_OUTPUT
-          echo "version=$(sed -nE 's/^FROM +[^:]*:([a-z]*)+([0-9.]+)\$?.*$/\2/p' '${{ matrix.dockerfile }}' | head -1)" >> $GITHUB_OUTPUT
-          echo "major=$(sed -nE 's/^FROM +[^:]*:([a-z]*)+([0-9]+)\.([0-9]+)\.?([0-9]+)?\$?.*$/\2/p' '${{ matrix.dockerfile }}' | head -1)" >> $GITHUB_OUTPUT
-          echo "minor=$(sed -nE 's/^FROM +[^:]*:([a-z]*)+([0-9]+)\.([0-9]+)\.?([0-9]+)?\$?.*$/\3/p' '${{ matrix.dockerfile }}' | head -1)" >> $GITHUB_OUTPUT
-          echo "patch=$(sed -nE 's/^FROM +[^:]*:([a-z]*)+([0-9]+)\.([0-9]+)\.?([0-9]+)?\$?.*$/\4/p' '${{ matrix.dockerfile }}' | head -1)" >> $GITHUB_OUTPUT
+        env: &info-env
+          DOCKERFILE: ${{ inputs.source-repository != '' && format('source/{0}', matrix.dockerfile) || matrix.dockerfile }}
+          SOURCE_DIRECTORY: ${{ inputs.source-repository != '' && 'source' || '.' }}
+        run: &info-run |
+          echo "prefix=$(sed -nE 's/^FROM +[^:]*:([a-z]*)+([0-9.]+)\$?.*$/\1/p' "$DOCKERFILE" | head -1)" >> "$GITHUB_OUTPUT"
+          echo "version=$(sed -nE 's/^FROM +[^:]*:([a-z]*)+([0-9.]+)\$?.*$/\2/p' "$DOCKERFILE" | head -1)" >> "$GITHUB_OUTPUT"
+          echo "major=$(sed -nE 's/^FROM +[^:]*:([a-z]*)+([0-9]+)\.([0-9]+)\.?([0-9]+)?\$?.*$/\2/p' "$DOCKERFILE" | head -1)" >> "$GITHUB_OUTPUT"
+          echo "minor=$(sed -nE 's/^FROM +[^:]*:([a-z]*)+([0-9]+)\.([0-9]+)\.?([0-9]+)?\$?.*$/\3/p' "$DOCKERFILE" | head -1)" >> "$GITHUB_OUTPUT"
+          echo "revision=$(git -C "$SOURCE_DIRECTORY" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "SOURCE_DATE_EPOCH=$(git -C "$SOURCE_DIRECTORY" log -1 --pretty=%ct)" >> "$GITHUB_ENV"
 
-          echo "SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)" >> $GITHUB_ENV
-
-      - uses: docker/setup-qemu-action@v4
-      - uses: docker/setup-buildx-action@v4
-
-      - name: Generate image tags
+      - &metadata
+        name: Generate image metadata
         id: meta
         uses: docker/metadata-action@v6
         with:
           images: ${{ inputs.registry }}/${{ github.repository }}/${{ inputs.image }}
           flavor: |
             latest=false
-            prefix=${{ steps.info.outputs.prefix }}
+            prefix=${{ inputs.source-repository == '' && steps.info.outputs.prefix || '' }}
             suffix=${{ matrix.variant }}
           tags: |
-            type=raw,value=${{ steps.info.outputs.version }}
-            type=raw,value=${{ steps.info.outputs.major }}
-            type=raw,value=${{ steps.info.outputs.major }}.${{ steps.info.outputs.minor }}
+            type=semver,pattern={{version}},value=${{ inputs.source-ref }},enable=${{ inputs.source-repository != '' }}
+            type=semver,pattern={{major}},value=${{ inputs.source-ref }},enable=${{ inputs.source-repository != '' }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.source-ref }},enable=${{ inputs.source-repository != '' }}
+            type=raw,value=${{ steps.info.outputs.version }},enable=${{ inputs.source-repository == '' }}
+            type=raw,value=${{ steps.info.outputs.major }},enable=${{ inputs.source-repository == '' }}
+            type=raw,value=${{ steps.info.outputs.major }}.${{ steps.info.outputs.minor }},enable=${{ inputs.source-repository == '' }}
+          labels: |
+            org.opencontainers.image.source=${{ inputs.source-repository || format('{0}/{1}', github.server_url, github.repository) }}
+            org.opencontainers.image.revision=${{ steps.info.outputs.revision }}
+            ${{ inputs.labels }}
 
-      - name: Build and push image
+      - name: Log in to ${{ inputs.registry }}
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build and push ${{ matrix.architecture }} image by digest
         id: push
         uses: docker/build-push-action@v7
         with:
-          context: .
-          file: ${{ matrix.dockerfile }}
-          cache-from: type=gha,scope=build-${{ inputs.image }}-${{ matrix.dockerfile }}-${{ matrix.variant }}
-          cache-to: type=gha,mode=max,scope=build-${{ inputs.image }}-${{ matrix.dockerfile }}-${{ matrix.variant }}
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          context: ${{ inputs.source-repository != '' && 'source' || '.' }}
+          file: ${{ inputs.source-repository != '' && format('source/{0}', matrix.dockerfile) || matrix.dockerfile }}
           labels: ${{ steps.meta.outputs.labels }}
-          platforms: ${{ inputs.platforms }}
+          provenance: false
+          cache-from: type=gha,scope=build-${{ inputs.image }}-${{ matrix.dockerfile }}-${{ matrix.variant }}-${{ matrix.architecture }}
+          cache-to: type=gha,mode=max,scope=build-${{ inputs.image }}-${{ matrix.dockerfile }}-${{ matrix.variant }}-${{ matrix.architecture }}
+          outputs: type=image,name=${{ inputs.registry }}/${{ github.repository }}/${{ inputs.image }},push-by-digest=true,name-canonical=true,push=true
+          platforms: linux/${{ matrix.architecture }}
           build-args: |
             VARIANT=${{ matrix.variant }}
             ${{ inputs.build-args }}
+
+      - name: Export image digest
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/digests"
+          touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
+
+      - name: Upload image digest
+        uses: actions/upload-artifact@v7
+        with:
+          name: digest-${{ inputs.image }}-${{ inputs.source-repository != '' && inputs.source-ref || hashFiles(matrix.dockerfile) }}-${{ matrix.variant }}-${{ matrix.architecture }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Publish ${{ matrix.dockerfile }}${{ matrix.variant }}
+    needs: build
+    if: ${{ !cancelled() }}
+    strategy:
+      fail-fast: false
+      matrix:
+        dockerfile: ${{ fromJSON(inputs.dockerfiles) }}
+        variant: ${{ fromJSON(inputs.variants) }}
+
+    runs-on: ubuntu-24.04
+
+    steps:
+      - *checkout
+
+      # Source builds never clone here, so there is nothing to extract from; the tags
+      # come from source-ref via metadata-action instead.
+      - name: Extract version information and date epoch
+        id: info
+        if: inputs.source-repository == ''
+        env: *info-env
+        run: *info-run
+
+      - *metadata
+
+      - name: Download image digests
+        uses: actions/download-artifact@v5
+        with:
+          pattern: digest-${{ inputs.image }}-${{ inputs.source-repository != '' && inputs.source-ref || hashFiles(matrix.dockerfile) }}-${{ matrix.variant }}-*
+          path: ${{ runner.temp }}/digests
+          merge-multiple: true
+
+      - name: Log in to ${{ inputs.registry }}
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Create multi-platform image
+        id: push
+        env:
+          IMAGE: ${{ inputs.registry }}/${{ github.repository }}/${{ inputs.image }}
+          METADATA: ${{ steps.meta.outputs.json }}
+          ARCHITECTURES: ${{ inputs.architectures }}
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          digests=(*)
+          expected=$(jq length <<< "$ARCHITECTURES")
+          if (( ${#digests[@]} != expected )); then
+            echo "Expected $expected architecture digests, found ${#digests[@]}" >&2
+            exit 1
+          fi
+
+          # imagetools builds a fresh index, so the child manifest labels do not carry
+          # over; re-apply them as index annotations. Values contain spaces, hence the
+          # array rather than word splitting.
+          mapfile -t args < <(jq -r '
+            (.tags[] | "--tag", .),
+            ((.labels // {}) | to_entries[] | select(.value != "") | "--annotation", "index:\(.key)=\(.value)")
+          ' <<< "$METADATA")
+
+          docker buildx imagetools create "${args[@]}" "${digests[@]/#/$IMAGE@sha256:}"
+          first_tag=$(jq -r '.tags[0]' <<< "$METADATA")
+          echo "digest=$(docker buildx imagetools inspect "$first_tag" --format '{{.Manifest.Digest}}')" >> "$GITHUB_OUTPUT"
 
       - name: Generate provenance attestation
         uses: actions/attest-build-provenance@v4

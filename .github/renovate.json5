@@ -22,8 +22,21 @@
     {
       // We should keep our docker images up to date automatically
       "groupName": "docker",
+      "matchDatasources": ["docker", "github-releases"],
       "matchManagers": ["dockerfile", "custom.regex"],
       "matchUpdateTypes": ["minor", "patch", "pin", "digest", "pinDigest"],
+      "automergeType": "branch",
+      "automerge": true
+    },
+    {
+      // Source-built images always track the latest upstream Git tag, majors included.
+      // Every release is published under its own immutable tag, so following upstream
+      // never breaks an existing consumer; when to move is their call, not ours. This is
+      // deliberately unlike the dockerfile rule below, where a major rebases our own base.
+      "groupName": "source-images",
+      "matchDatasources": ["git-tags"],
+      "matchManagers": ["custom.regex"],
+      "matchUpdateTypes": ["major", "minor", "patch", "pin"],
       "automergeType": "branch",
       "automerge": true
     },
@@ -45,6 +58,27 @@
         "https://github.com/(?<depName>[^/]*/[^/]*)/releases/download/v?[0-9.]+/[^/]*?(?<currentValue>(?:\\.?[0-9]+)+)"
       ],
       "datasourceTemplate": "github-releases"
+    },
+    {
+      // Upstream Git tag each source-built image is pinned to. Only datasource and depName
+      // are required; packageName (nicer PR titles when depName is not the clone URL) and
+      // versioning (defaults to semver) are optional, but must appear in this order.
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/build-.*\\.ya?ml$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: packageName=(?<packageName>\\S+))?(?: versioning=(?<versioning>\\S+))?\\s+source-ref:\\s*(?<currentValue>\\S+)"
+      ],
+      "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
+    },
+    {
+      // Base images we override through build-args because upstream pinned a
+      // single-architecture digest. Matches e.g. FOO_IMAGE=registry/repo:tag@sha256:...
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/build-.*\\.ya?ml$/"],
+      "matchStrings": [
+        "[A-Z0-9_]+=(?<depName>[^\\s:@]+):(?<currentValue>[^\\s@]+)@(?<currentDigest>sha256:[a-f0-9]{64})"
+      ],
+      "datasourceTemplate": "docker"
     }
   ]
 }

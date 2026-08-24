@@ -1,0 +1,39 @@
+name: Build Tranquil PDS
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/build-tranquil-pds.yaml
+      - .github/workflows/call-docker-build.yaml
+
+permissions:
+  contents: read
+  packages: write
+  attestations: write
+  artifact-metadata: write
+  id-token: write
+
+jobs:
+  build:
+    uses: ./.github/workflows/call-docker-build.yaml
+    with:
+      image: tranquil-pds
+      dockerfiles: '["Dockerfile"]'
+      source-repository: https://tangled.org/tranquil.farm/tranquil-pds.git
+      # renovate: datasource=git-tags depName=tranquil-pds packageName=https://tangled.org/tranquil.farm/tranquil-pds versioning=semver
+      source-ref: v0.6.6
+      # Upstream defaults DISTROLESS_IMAGE to an amd64-only manifest digest. BuildKit only
+      # warns about that (InvalidBaseImagePlatform), so the arm64 build would silently
+      # produce an image declaring arm64 while shipping x86_64 glibc. Point it at the
+      # digest of the multi-arch index instead.
+      build-args: |
+        DISTROLESS_IMAGE=gcr.io/distroless/cc-debian13:latest@sha256:e86cf4f565c8eee2cbb2be073bb107dafb14734b53d5872da20fdf47418a02f4
+      # The image ships the compiled server and frontend assets, which upstream licenses
+      # under AGPLv3-or-later; the CC-BY-SA docs are not part of it.
+      labels: |
+        org.opencontainers.image.title=Tranquil PDS
+        org.opencontainers.image.description=A Personal Data Server for the AT Protocol.
+        org.opencontainers.image.licenses=AGPL-3.0-or-later
