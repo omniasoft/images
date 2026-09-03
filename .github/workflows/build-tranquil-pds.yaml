@@ -30,7 +30,7 @@ jobs:
       # produce an image declaring arm64 while shipping x86_64 glibc. Point it at the
       # digest of the multi-arch index instead.
       build-args: |
-        DISTROLESS_IMAGE=gcr.io/distroless/cc-debian13:latest@sha256:e86cf4f565c8eee2cbb2be073bb107dafb14734b53d5872da20fdf47418a02f4
+        DISTROLESS_IMAGE=gcr.io/distroless/cc-debian13:latest@sha256:9b615fff20e1a4fad29c2b30562580b212c7dd5e2225236735cca0070ed11c78
       # The image ships the compiled server and frontend assets, which upstream licenses
       # under AGPLv3-or-later; the CC-BY-SA docs are not part of it.
       labels: |
