@@ -20,8 +20,6 @@ jobs:
     outputs:
       php_files: ${{ steps.filter.outputs.php_files }}
       php: ${{ steps.filter.outputs.php }}
-      unit_files: ${{ steps.filter.outputs.unit_files }}
-      unit: ${{ steps.filter.outputs.unit }}
       frankenphp_files: ${{ steps.filter.outputs.frankenphp_files }}
       frankenphp: ${{ steps.filter.outputs.frankenphp }}
       general: ${{ steps.filter.outputs.general }}
@@ -44,8 +42,6 @@ jobs:
           filters: |
             php:
               - 'php/*.Dockerfile'
-            unit:
-              - 'unit/*.Dockerfile'
             frankenphp:
               - 'frankenphp/*.Dockerfile'
             general:
@@ -76,15 +72,6 @@ jobs:
       build-args: &php-build-args |
         DEBIAN_PACKAGES=msmtp-mta less ghostscript
         PHP_EXTENSIONS=redis gd bcmath exif intl mysqli pgsql pdo_mysql pdo_pgsql zip imagick opcache
-
-  build-unit:
-    needs: changes
-    if: needs.changes.outputs.unit == 'true'
-    uses: ./.github/workflows/call-docker-build.yaml
-    with:
-      image: unit
-      dockerfiles: ${{ needs.changes.outputs.unit_files }}
-      build-args: *php-build-args
 
   build-frankenphp:
     needs: changes
