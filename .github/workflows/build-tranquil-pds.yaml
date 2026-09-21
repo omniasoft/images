@@ -24,7 +24,7 @@ jobs:
       dockerfiles: '["Dockerfile"]'
       source-repository: https://tangled.org/tranquil.farm/tranquil-pds.git
       # renovate: datasource=git-tags depName=tranquil-pds packageName=https://tangled.org/tranquil.farm/tranquil-pds versioning=semver
-      source-ref: v0.6.6
+      source-ref: v0.6.7
       # Upstream defaults DISTROLESS_IMAGE to an amd64-only manifest digest. BuildKit only
       # warns about that (InvalidBaseImagePlatform), so the arm64 build would silently
       # produce an image declaring arm64 while shipping x86_64 glibc. Point it at the
