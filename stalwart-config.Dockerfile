@@ -1,5 +1,5 @@
 # We have this FROM here so that our automatic version extractor uses stalwart-cli version information
-FROM ghcr.io/stalwartlabs/cli:1.0.12 AS stalwart-cli
+FROM ghcr.io/stalwartlabs/cli:1.0.13 AS stalwart-cli
 
 FROM debian:13.7-slim
 
@@ -8,7 +8,7 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=stalwart-cli /usr/local/bin/stalwart-cli /usr/bin/stalwart-cli
-COPY --from=mikefarah/yq:4.53.6 /usr/bin/yq /usr/bin/yq
+COPY --from=mikefarah/yq:4.54.1 /usr/bin/yq /usr/bin/yq
 
 RUN stalwart-cli --version && yq --version # Smoke test to ensure our image is solid
 
