@@ -41,11 +41,11 @@ jobs:
           list-files: json
           filters: |
             php:
-              - 'php/*.Dockerfile'
+              - added|modified: 'php/*.Dockerfile'
             frankenphp:
-              - 'frankenphp/*.Dockerfile'
+              - added|modified: 'frankenphp/*.Dockerfile'
             general:
-              - '*.Dockerfile'
+              - added|modified: '*.Dockerfile'
 
       - name: Strip out .Dockerfile suffix from all generic images so we can easily run a matrix job
         id: general-matrix
