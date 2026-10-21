@@ -3,7 +3,7 @@ FROM dunglas/frankenphp:1.13.1-php8
 ARG PHP_EXTENSIONS
 RUN if [ ! -z "PHP_EXTENSIONS" ]; then install-php-extensions $PHP_EXTENSIONS; fi
 
-# Packages that are NOT required to install php-extensions!
+# Packages that are NOT required to install php-extensions
 ARG DEBIAN_PACKAGES
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
