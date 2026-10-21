@@ -11,8 +11,8 @@ ARG DEBIAN_PACKAGES
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     if [ ! -z "DEBIAN_PACKAGES" ]; then \
-        apt-get update && apt-get install -y --no-install-recommends \
-        $DEBIAN_PACKAGES \
+    apt-get update && apt-get install -y --no-install-recommends \
+    $DEBIAN_PACKAGES \
     ; fi \
     && rm -rf /var/lib/apt/lists/*
 

@@ -4,8 +4,8 @@ FROM ghcr.io/stalwartlabs/cli:1.0.13 AS stalwart-cli
 FROM debian:13.7-slim
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl \
- && rm -rf /var/lib/apt/lists/*
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=stalwart-cli /usr/local/bin/stalwart-cli /usr/bin/stalwart-cli
 COPY --from=mikefarah/yq:4.54.1 /usr/bin/yq /usr/bin/yq
