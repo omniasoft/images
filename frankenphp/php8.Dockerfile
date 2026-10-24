@@ -1,4 +1,4 @@
-FROM dunglas/frankenphp:1.13.1-php8
+FROM dunglas/frankenphp:1.13.3-php8
 
 ARG PHP_EXTENSIONS
 RUN if [ ! -z "PHP_EXTENSIONS" ]; then install-php-extensions $PHP_EXTENSIONS; fi
