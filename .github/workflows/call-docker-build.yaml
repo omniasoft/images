@@ -8,7 +8,9 @@ on:
         required: true
         type: string
       dockerfiles:
-        description: JSON encoded array of Dockerfiles
+        description: |
+          JSON encoded array of Dockerfiles, relative to this repository. With source-repository the
+          build context is its clone in source/, so upstream's own Dockerfile would be source/Dockerfile.
         required: true
         type: string
       variants:
@@ -35,7 +37,7 @@ on:
         default: ""
         type: string
       source-repository:
-        description: Git repository URL to use as the build context
+        description: Git repository URL, cloned into source/ and used as the build context
         default: ""
         type: string
       source-ref:
@@ -70,13 +72,12 @@ jobs:
       DOCKER_BUILD_RECORD_UPLOAD: false
 
     steps:
+      # Always needed: the Dockerfiles live here, also when the context is an upstream clone.
       - &checkout
         name: Check out image definitions
-        if: inputs.source-repository == ''
         uses: actions/checkout@v7
 
-      - &source
-        name: Check out source repository
+      - name: Check out source repository
         if: inputs.source-repository != ''
         env:
           SOURCE_REF: ${{ inputs.source-ref }}
@@ -86,7 +87,7 @@ jobs:
       - name: Extract version information and date epoch
         id: info
         env: &info-env
-          DOCKERFILE: ${{ inputs.source-repository != '' && format('source/{0}', matrix.dockerfile) || matrix.dockerfile }}
+          DOCKERFILE: ${{ matrix.dockerfile }}
           SOURCE_DIRECTORY: ${{ inputs.source-repository != '' && 'source' || '.' }}
         run: &info-run |
           echo "prefix=$(sed -nE 's/^FROM +[^:]*:([a-z]*)+([0-9.]+)\$?.*$/\1/p' "$DOCKERFILE" | head -1)" >> "$GITHUB_OUTPUT"
@@ -132,14 +133,18 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: ${{ inputs.source-repository != '' && 'source' || '.' }}
-          file: ${{ inputs.source-repository != '' && format('source/{0}', matrix.dockerfile) || matrix.dockerfile }}
+          file: ${{ matrix.dockerfile }}
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
           cache-from: type=gha,scope=build-${{ inputs.image }}-${{ matrix.dockerfile }}-${{ matrix.variant }}-${{ matrix.architecture }}
           cache-to: type=gha,mode=max,scope=build-${{ inputs.image }}-${{ matrix.dockerfile }}-${{ matrix.variant }}-${{ matrix.architecture }}
           outputs: type=image,name=${{ inputs.registry }}/${{ github.repository }}/${{ inputs.image }},push-by-digest=true,name-canonical=true,push=true
           platforms: linux/${{ matrix.architecture }}
+          # Build check warnings fail the build. Above all InvalidBaseImagePlatform: a single-arch base
+          # would otherwise silently give e.g. an "arm64" image with x86_64 libc. Callers can override it
+          # in build-args (the last one wins), e.g. BUILDKIT_DOCKERFILE_CHECK=skip=SomeRule;error=true.
           build-args: |
+            BUILDKIT_DOCKERFILE_CHECK=error=true
             VARIANT=${{ matrix.variant }}
             ${{ inputs.build-args }}
 

@@ -21,16 +21,14 @@ jobs:
     uses: ./.github/workflows/call-docker-build.yaml
     with:
       image: tranquil-pds
-      dockerfiles: '["Dockerfile"]'
+      # Paths are relative to this repository and the build context is the upstream clone in source/, so
+      # source/Dockerfile is upstream's own Dockerfile (a repo-owned one would be e.g. tranquil/...).
+      # Its DISTROLESS_IMAGE default is a multi-arch index since v0.7.0; were it single-arch again,
+      # call-docker-build's strict build checks fail on InvalidBaseImagePlatform.
+      dockerfiles: '["source/Dockerfile"]'
       source-repository: https://tangled.org/tranquil.farm/tranquil-pds.git
       # renovate: datasource=git-tags depName=tranquil-pds packageName=https://tangled.org/tranquil.farm/tranquil-pds versioning=semver
       source-ref: v0.7.1
-      # Upstream defaults DISTROLESS_IMAGE to an amd64-only manifest digest. BuildKit only
-      # warns about that (InvalidBaseImagePlatform), so the arm64 build would silently
-      # produce an image declaring arm64 while shipping x86_64 glibc. Point it at the
-      # digest of the multi-arch index instead.
-      build-args: |
-        DISTROLESS_IMAGE=gcr.io/distroless/cc-debian13:latest@sha256:d74d144baa124dd9defd01d71872bb56c49d4441dba6153ccf790364f97e64b1
       # The image ships the compiled server and frontend assets, which upstream licenses
       # under AGPLv3-or-later; the CC-BY-SA docs are not part of it.
       labels: |

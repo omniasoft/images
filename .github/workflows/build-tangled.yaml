@@ -1,0 +1,51 @@
+name: Build Tangled
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/build-tangled.yaml
+      - .github/workflows/call-docker-build.yaml
+      - tangled/**
+
+# We need to match the permissions of call-docker-build.yaml
+permissions:
+  contents: read
+  packages: write
+  attestations: write
+  artifact-metadata: write
+  id-token: write
+
+jobs:
+  # knot (knot2, Rust) and spindle (Go + cgo) are released together from the tangled.org/core
+  # monorepo, so one source-ref and one Renovate annotation drive both. Upstream's knot2/Containerfile
+  # is broken at v1.20.0 and spindle has none, hence our own Dockerfiles (see their headers).
+  build:
+    name: ${{ matrix.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: tangled-knot
+            dockerfile: tangled/knot.Dockerfile
+            title: Tangled knot
+            description: Git hosting server (knot2) with built-in SSH for Tangled, the AT Protocol code forge.
+          - image: tangled-spindle
+            dockerfile: tangled/spindle.Dockerfile
+            title: Tangled spindle
+            description: CI runner for Tangled, the AT Protocol code forge.
+    uses: ./.github/workflows/call-docker-build.yaml
+    with:
+      image: ${{ matrix.image }}
+      # Paths are relative to this repository; the build context is the upstream clone in source/. So
+      # these are our own Dockerfiles building upstream's code (upstream's own would be source/...).
+      dockerfiles: ${{ format('["{0}"]', matrix.dockerfile) }}
+      source-repository: https://tangled.org/tangled.org/core.git
+      # renovate: datasource=git-tags depName=tangled-core packageName=https://tangled.org/tangled.org/core versioning=semver
+      source-ref: v1.20.0
+      labels: |
+        org.opencontainers.image.title=${{ matrix.title }}
+        org.opencontainers.image.description=${{ matrix.description }}
+        org.opencontainers.image.licenses=MIT
