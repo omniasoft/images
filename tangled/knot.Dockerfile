@@ -1,7 +1,7 @@
 # Tangled knot (knot2). A copy of upstream's knot2/Containerfile as fixed on master: at v1.20.0 it copies a
 # missing knot2/lexicons, pins an amd64-only base and passes the config path without --config. Once a tag
 # ships the fix, build-tangled.yaml can use source/knot2/Containerfile instead and this file goes away.
-FROM rust:1.96-slim-trixie AS build
+FROM rust:1.99-slim-trixie AS build
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates build-essential cmake perl pkg-config clang mold \

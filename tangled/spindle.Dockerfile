@@ -1,6 +1,6 @@
 # Tangled spindle. Upstream only packages it with Nix (nix/pkgs/spindle.nix): a cgo Go binary linking SQLite
 # and hydrant's Rust staticlib (nix/pkgs/hydrant-ffi.nix). This follows that recipe.
-FROM golang:1.26-trixie AS modules
+FROM golang:1.27-trixie AS modules
 
 ENV GOTOOLCHAIN=local
 WORKDIR /src
@@ -10,7 +10,7 @@ RUN go mod download \
     && cp -r "$(go list -m -f '{{.Dir}}' tangled.org/ptr.pet/hydrant)" /hydrant \
     && chmod -R u+w /hydrant
 
-FROM rust:1.96-slim-trixie AS hydrant
+FROM rust:1.99-slim-trixie AS hydrant
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential clang cmake mold perl pkg-config \
