@@ -10,7 +10,7 @@ RUN go mod download \
     && cp -r "$(go list -m -f '{{.Dir}}' tangled.org/ptr.pet/hydrant)" /hydrant \
     && chmod -R u+w /hydrant
 
-FROM rust:1.99-slim-trixie AS hydrant
+FROM rust:1.100-slim-trixie AS hydrant
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential clang cmake mold perl pkg-config \
