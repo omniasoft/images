@@ -44,7 +44,7 @@ jobs:
       dockerfiles: ${{ format('["{0}"]', matrix.dockerfile) }}
       source-repository: https://tangled.org/tangled.org/core.git
       # renovate: datasource=git-tags depName=tangled-core packageName=https://tangled.org/tangled.org/core versioning=semver
-      source-ref: v1.20.0
+      source-ref: v1.20.1
       labels: |
         org.opencontainers.image.title=${{ matrix.title }}
         org.opencontainers.image.description=${{ matrix.description }}
