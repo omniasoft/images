@@ -7,7 +7,7 @@
     ":skipStatusChecks", // Just merge without waiting for tests (if we don't have tests or don't care)
     ":automergeMinor" // We want to merge all minor and patches
   ],
-  "automergeSchedule": ["* 0-6 * * 6"], // IMPORTANT: This needs to match GitHub Actions schedule which run in UTC (renovate without timezone also runs UTC)
+  "automergeSchedule": ["* * * * 6"], // The whole day as GitHub starts our 01:15 UTC cron up to 8 hours late
   // We simply automerge everything via commits in one fell swoop!
   "enabledManagers": ["custom.regex", "dockerfile", "github-actions"],
   "packageRules": [
