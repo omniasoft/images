@@ -29,6 +29,16 @@
       "automerge": true
     },
     {
+      // A PHP minor (e.g. 8.5 to 8.6) breaks PECL extensions such as phpredis until they catch up, so it
+      // gets its own PR to check instead of being automerged with (and blocking) the docker group.
+      // This includes frankenphp's -php8.5 tag suffix, see the custom manager for it below.
+      "groupName": "php-minor",
+      "matchDatasources": ["docker"],
+      "matchDepNames": ["php"],
+      "matchUpdateTypes": ["minor"],
+      "automerge": false
+    },
+    {
       // Source-built images always track the latest upstream Git tag, majors included.
       // Every release is published under its own immutable tag, so following upstream
       // never breaks an existing consumer; when to move is their call, not ours. This is
@@ -69,6 +79,15 @@
         "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: packageName=(?<packageName>\\S+))?(?: versioning=(?<versioning>\\S+))?\\s+source-ref:\\s*(?<currentValue>\\S+)"
       ],
       "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
+    },
+    {
+      // The dockerfile manager keeps frankenphp's -php8.5 suffix as is, so track that PHP minor
+      // against the official php image. As depName "php" it lands in the same php-minor PR.
+      "customType": "regex",
+      "managerFilePatterns": ["/(?:.*\\.)?Dockerfile/"],
+      "matchStrings": ["FROM dunglas/frankenphp:\\S+-php(?<currentValue>\\d+\\.\\d+)\\b"],
+      "depNameTemplate": "php",
+      "datasourceTemplate": "docker"
     }
   ]
 }
