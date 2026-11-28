@@ -1,7 +1,7 @@
 # We have this FROM here so that our automatic version extractor uses stalwart-cli version information
 FROM ghcr.io/stalwartlabs/cli:1.0.14 AS stalwart-cli
 
-FROM debian:13.7-slim
+FROM debian:13.8-slim
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl \

@@ -1,4 +1,4 @@
-FROM nginx/nginx-unprivileged:1.31.9
+FROM nginx/nginx-unprivileged:1.31.10
 
 # We "normalize" the nginx unprivileged image into what we normally have (user www-data) and /var/www/html
 USER root
